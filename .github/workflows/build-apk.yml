@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'AuraClash_proyecto.zip'
+      - 'AuraClash_2D.zip'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -36,10 +36,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p proyecto
-          unzip -o AuraClash_proyecto.zip -d proyecto
+          unzip -o AuraClash_2D.zip -d proyecto
           HTML="$(find proyecto -type f \( -iname 'index.html' -o -iname 'index.htm' \) | head -1)"
           if [ -z "$HTML" ]; then
-            echo "::error::No encontré index.html dentro de AuraClash_proyecto.zip."
+            echo "::error::No encontré index.html dentro de AuraClash_2D.zip."
             find proyecto -maxdepth 4 -type f | head -100
             exit 1
           fi
