@@ -53,6 +53,7 @@ jobs:
           mkdir -p app/src/main/java/com/auraclash/game
           mkdir -p app/src/main/assets/www
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
 
           cp -R "$WEB_ROOT"/. app/src/main/assets/www/
 
@@ -110,7 +111,9 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET" />
               <application
                   android:theme="@style/AppTheme"
-                  android:label="AURA CLASH"
+                  android:label="Dragón Súper"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher"
                   android:usesCleartextTraffic="true"
                   android:hardwareAccelerated="true">
                   <activity
@@ -196,6 +199,15 @@ jobs:
 
           echo "Estructura Android creada:"
           find . -maxdepth 5 -type f | sort | head -100
+
+      - name: Generar iconos de Dragón Súper
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 48 -h 48 android/icon/dragon-super.svg -o app/src/main/res/mipmap-mdpi/ic_launcher.png
+          rsvg-convert -w 72 -h 72 android/icon/dragon-super.svg -o app/src/main/res/mipmap-hdpi/ic_launcher.png
+          rsvg-convert -w 96 -h 96 android/icon/dragon-super.svg -o app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          rsvg-convert -w 144 -h 144 android/icon/dragon-super.svg -o app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          rsvg-convert -w 192 -h 192 android/icon/dragon-super.svg -o app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
