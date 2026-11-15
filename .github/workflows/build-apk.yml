@@ -37,9 +37,9 @@ jobs:
         run: |
           mkdir -p proyecto
           unzip -o AuraClash_2D.zip -d proyecto
-          HTML="$(find proyecto -type f \( -iname 'index.html' -o -iname 'index.htm' \) | head -1)"
+          HTML="$(find proyecto -type f ! -path '*/__MACOSX/*' \( -iname 'index.html' -o -iname 'index.htm' -o -iname '*.html' -o -iname '*.htm' \) | head -1)"
           if [ -z "$HTML" ]; then
-            echo "::error::No encontré index.html dentro de AuraClash_2D.zip."
+            echo "::error::No encontré ningún archivo HTML dentro de AuraClash_2D.zip."
             find proyecto -maxdepth 4 -type f | head -100
             exit 1
           fi
@@ -56,6 +56,13 @@ jobs:
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
 
           cp -R "$WEB_ROOT"/. app/src/main/assets/www/
+          HTML_FILE="$(find "$WEB_ROOT" -maxdepth 1 -type f ! -path '*/__MACOSX/*' \( -iname '*.html' -o -iname '*.htm' \) | head -1)"
+          if [ -z "$HTML_FILE" ]; then
+            echo "::error::No encontré el archivo HTML principal."
+            exit 1
+          fi
+          cp "$HTML_FILE" app/src/main/assets/www/index.html
+          echo "HTML principal preparado: $HTML_FILE"
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
