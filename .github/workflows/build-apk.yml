@@ -1,7 +1,17 @@
-name: Build AURA CLASH APK
+
+name: AURA CLASH - Build APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'AuraClash_proyecto.zip'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -19,107 +29,50 @@ jobs:
 
       - name: Preparar Android
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Instalar Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Descomprimir proyecto
+      - name: Instalar herramientas
         run: |
-          unzip -q AuraClash_iPhone_CloudBuild.zip -d proyecto
+          sudo apt-get update
+          sudo apt-get install -y unzip zip
 
-      - name: Poner nombre e icono AURA CLASH
+      - name: Descomprimir proyecto nuevo
         run: |
-          python3 -m pip install --quiet pillow
-          cat > /tmp/brand_app.py <<'PY'
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          from PIL import Image, ImageDraw, ImageFont
-          import math
+          mkdir -p proyecto
+          unzip -o AuraClash_proyecto.zip -d proyecto
+          echo "Contenido del proyecto:"
+          find proyecto -maxdepth 3 -type f | head -100
 
-          roots = list(Path("proyecto").rglob("AndroidManifest.xml"))
-          roots = [p for p in roots if p.parent.name == "main" and p.parent.parent.name == "src"]
-          if not roots:
-              raise SystemExit("No se encontró app/src/main/AndroidManifest.xml")
-          manifest = roots[0]
-          module = manifest.parent.parent.parent
-          res = module / "src" / "main" / "res"
-
-          tree = ET.parse(manifest)
-          root = tree.getroot()
-          android = "{http://schemas.android.com/apk/res/android}"
-          app = root.find("application")
-          if app is None:
-              raise SystemExit("El AndroidManifest no contiene <application>")
-          app.set(android + "label", "@string/app_name")
-          app.set(android + "icon", "@mipmap/ic_launcher")
-          app.set(android + "roundIcon", "@mipmap/ic_launcher_round")
-          tree.write(manifest, encoding="utf-8", xml_declaration=True)
-
-          values = res / "values"
-          values.mkdir(parents=True, exist_ok=True)
-          (values / "strings.xml").write_text(
-              '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-              '    <string name="app_name">AURA CLASH</string>\n'
-              '</resources>\n', encoding="utf-8"
-          )
-
-          S = 512
-          im = Image.new("RGB", (S, S))
-          px = im.load()
-          for y in range(S):
-              for x in range(S):
-                  d = math.sqrt((x-256)**2 + (y-256)**2) / 362
-                  glow = max(0, 1-d)
-                  px[x,y] = (int(8+12*glow), int(10+18*glow), int(30+45*glow))
-          d = ImageDraw.Draw(im, "RGBA")
-          d.ellipse((38,38,474,474), outline=(70,210,255,190), width=8)
-          d.ellipse((58,58,454,454), outline=(255,120,50,120), width=4)
-          # Dos figuras de luchadores estilizadas
-          d.ellipse((112,112,222,222), fill=(20,170,245,255), outline=(210,245,255,255), width=5)
-          d.polygon([(95,220),(235,220),(260,390),(70,390)], fill=(12,95,180,255), outline=(170,225,255,255))
-          d.ellipse((290,112,400,222), fill=(245,105,35,255), outline=(255,225,190,255), width=5)
-          d.polygon([(275,220),(415,220),(442,390),(248,390)], fill=(165,55,30,255), outline=(255,190,140,255))
-          font_path="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-          qfont=ImageFont.truetype(font_path,100)
-          for x in (167,345):
-              d.text((x,165), "?", font=qfont, anchor="mm", fill=(255,255,255,255), stroke_width=3, stroke_fill=(10,15,35,255))
-          titlefont=ImageFont.truetype(font_path,45)
-          d.rounded_rectangle((65,405,447,475), radius=20, fill=(5,8,24,235), outline=(120,220,255,230), width=3)
-          d.text((256,440), "AURA CLASH", font=titlefont, anchor="mm", fill=(255,255,255,255), stroke_width=1, stroke_fill=(0,0,0,255))
-
-          for folder, size in [("mipmap-mdpi",48),("mipmap-hdpi",72),("mipmap-xhdpi",96),("mipmap-xxhdpi",144),("mipmap-xxxhdpi",192)]:
-              dest=res/folder
-              dest.mkdir(parents=True, exist_ok=True)
-              icon=im.resize((size,size), Image.Resampling.LANCZOS)
-              icon.save(dest/"ic_launcher.png")
-              icon.save(dest/"ic_launcher_round.png")
-          print("Nombre e iconos AURA CLASH agregados en", module)
-          PY
-          python3 /tmp/brand_app.py
-
-      - name: Buscar y compilar proyecto
+      - name: Buscar proyecto Android
+        id: find
         run: |
-          SETTINGS=$(find proyecto -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
+          GRADLE_FILE=$(find proyecto -name settings.gradle -o -name settings.gradle.kts | head -1)
 
-          if [ -z "$SETTINGS" ]; then
-            echo "No se encontró settings.gradle"
-            echo "Archivos encontrados:"
-            find proyecto -maxdepth 5 -type f
+          if [ -z "$GRADLE_FILE" ]; then
+            GRADLE_FILE=$(find proyecto -name build.gradle -o -name build.gradle.kts | head -1)
+          fi
+
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "No se encontró un proyecto Gradle Android."
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$SETTINGS")
-          echo "Proyecto encontrado en: $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          gradle assembleDebug
+          ROOT=$(dirname "$GRADLE_FILE")
+          echo "root=$ROOT" >> "$GITHUB_OUTPUT"
+
+      - name: Compilar APK
+        run: |
+          cd "${{ steps.find.outputs.root }}"
+
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          else
+            gradle assembleDebug
+          fi
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: AURA-CLASH-APK
-          path: proyecto/**/app/build/outputs/apk/debug/*.apk
+          path: proyecto/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
