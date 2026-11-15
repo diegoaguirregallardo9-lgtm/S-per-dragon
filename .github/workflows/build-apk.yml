@@ -29,15 +29,28 @@ jobs:
           gradle-version: '8.9'
 
       - name: Descomprimir proyecto
-        run: unzip -q AuraClash_iPhone_CloudBuild.zip -d proyecto
-
-      - name: Compilar juego
         run: |
-          cd proyecto
+          unzip -q AuraClash_iPhone_CloudBuild.zip -d proyecto
+
+      - name: Buscar y compilar proyecto
+        run: |
+          SETTINGS=$(find proyecto -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "No se encontró settings.gradle"
+            echo "Archivos encontrados:"
+            find proyecto -maxdepth 5 -type f
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "Proyecto encontrado en: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
           gradle assembleDebug
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: AURA-CLASH-APK
-          path: proyecto/app/build/outputs/apk/debug/*.apk
+          path: proyecto/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
