@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'AuraClash_2D.zip'
+      - '*.zip'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -36,7 +36,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p proyecto
-          unzip -o AuraClash_2D.zip -d proyecto
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname '*.zip' | head -1)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "::error::No hay ningún ZIP del juego en la raíz del repositorio. Sube el ZIP del juego y vuelve a ejecutar."
+            exit 1
+          fi
+          echo "Usando archivo: $ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d proyecto
           HTML="$(find proyecto -type f ! -path '*/__MACOSX/*' \( -iname 'index.html' -o -iname 'index.htm' -o -iname '*.html' -o -iname '*.htm' \) | head -1)"
           if [ -z "$HTML" ]; then
             echo "::error::No encontré ningún archivo HTML dentro de AuraClash_2D.zip."
