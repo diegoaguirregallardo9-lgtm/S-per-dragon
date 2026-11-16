@@ -53,6 +53,33 @@ jobs:
           echo "WEB_ROOT=$WEB_ROOT" >> "$GITHUB_ENV"
           echo "Juego encontrado en: $WEB_ROOT"
 
+      - name: Inspeccionar menú y lógica del juego
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re
+          root = os.environ.get("WEB_ROOT", "proyecto")
+          print("=== ARCHIVOS WEB ===")
+          for base, dirs, files in os.walk(root):
+              dirs[:] = [d for d in dirs if d != "__MACOSX"]
+              for name in files:
+                  if name.lower().endswith((".html", ".htm", ".js")):
+                      path = os.path.join(base, name)
+                      print("FILE:", path, "BYTES:", os.path.getsize(path))
+                      if name.lower().endswith((".html", ".htm")):
+                          data = open(path, encoding="utf-8", errors="replace").read()
+                          print("SCRIPT TAGS:", re.findall(r'<script[^>]+src=["\\']([^"\\']+)', data, re.I))
+                          print("BUTTONS/IDS:")
+                          for line in data.splitlines():
+                              if re.search(r'bluetooth|crear partida|unirte|multiplayer|game.?mode|start.?game|onclick|<button|id=', line, re.I):
+                                  print(line[:500])
+                      elif name.lower().endswith(".js"):
+                          data = open(path, encoding="utf-8", errors="replace").read()
+                          for i, line in enumerate(data.splitlines(), 1):
+                              if re.search(r'bluetooth|crear partida|unirte|multiplayer|game.?mode|start.?game|keydown|touchstart|socket|player', line, re.I):
+                                  print(f"{path}:{i}: {line[:400]}")
+          PY
+
       - name: Preparar firma permanente
         shell: bash
         env:
