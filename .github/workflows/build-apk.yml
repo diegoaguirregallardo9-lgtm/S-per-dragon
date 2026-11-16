@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - '*.zip'
+      - 'AuraClash_2D_Bluetooth.html'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -50,6 +51,10 @@ jobs:
             exit 1
           fi
           WEB_ROOT="$(dirname "$HTML")"
+          if [ -f "./AuraClash_2D_Bluetooth.html" ]; then
+            cp "./AuraClash_2D_Bluetooth.html" "$WEB_ROOT/index.html"
+            echo "Usando el HTML Bluetooth actualizado desde la raíz del repositorio."
+          fi
           echo "WEB_ROOT=$WEB_ROOT" >> "$GITHUB_ENV"
           echo "Juego encontrado en: $WEB_ROOT"
 
