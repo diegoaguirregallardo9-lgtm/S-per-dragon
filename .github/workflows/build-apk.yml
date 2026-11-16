@@ -130,8 +130,8 @@ jobs:
                   applicationId 'com.auraclash.game'
                   minSdk 23
                   targetSdk 28
-                  versionCode (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
-                  versionName "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+                  versionCode 1
+                  versionName "1.0"
               }
 
               def signingReady = ["ANDROID_KEYSTORE_PATH", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"].every { System.getenv(it)?.trim() }
