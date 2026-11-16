@@ -31,7 +31,7 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Instalar herramientas
-        run: sudo apt-get update && sudo apt-get install -y unzip
+        run: sudo apt-get update && sudo apt-get install -y unzip zip
 
       - name: Descomprimir juego HTML
         shell: bash
@@ -57,6 +57,13 @@ jobs:
           fi
           echo "WEB_ROOT=$WEB_ROOT" >> "$GITHUB_ENV"
           echo "Juego encontrado en: $WEB_ROOT"
+
+      - name: Crear ZIP actualizado con el HTML Bluetooth
+        shell: bash
+        run: |
+          rm -f AuraClash_2D_Bluetooth_ACTUALIZADO.zip
+          (cd proyecto && zip -qr ../AuraClash_2D_Bluetooth_ACTUALIZADO.zip .)
+          unzip -l AuraClash_2D_Bluetooth_ACTUALIZADO.zip | head -40
 
       - name: Preparar firma permanente
         shell: bash
@@ -431,4 +438,11 @@ jobs:
         with:
           name: DRAGON-SUPER-APK
           path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - name: Guardar ZIP actualizado del juego
+        uses: actions/upload-artifact@v4
+        with:
+          name: AURACLASH-BLUETOOTH-ZIP-ACTUALIZADO
+          path: AuraClash_2D_Bluetooth_ACTUALIZADO.zip
           if-no-files-found: error
