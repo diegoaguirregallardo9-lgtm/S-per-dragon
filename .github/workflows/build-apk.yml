@@ -44,6 +44,18 @@ jobs:
           fi
           echo "Usando archivo: $ZIP_FILE"
           unzip -o "$ZIP_FILE" -d proyecto
+          # Algunos ZIP subidos contienen el ZIP real del juego en su interior.
+          # Extraer archivos ZIP anidados antes de buscar el HTML principal.
+          for level in 1 2 3; do
+            NESTED_ZIP="$(find proyecto -type f -iname '*.zip' ! -path '*/__MACOSX/*' -print -quit)"
+            if [ -z "$NESTED_ZIP" ]; then
+              break
+            fi
+            echo "Extrayendo ZIP interno (nivel $level): $NESTED_ZIP"
+            NESTED_DIR="$(dirname "$NESTED_ZIP")"
+            unzip -o "$NESTED_ZIP" -d "$NESTED_DIR"
+            rm -f "$NESTED_ZIP"
+          done
           HTML="$(find proyecto -type f ! -path '*/__MACOSX/*' \( -iname 'index.html' -o -iname 'index.htm' -o -iname '*.html' -o -iname '*.htm' \) | head -1)"
           if [ -z "$HTML" ]; then
             echo "::error::No encontré ningún archivo HTML dentro del ZIP Bluetooth subido."
