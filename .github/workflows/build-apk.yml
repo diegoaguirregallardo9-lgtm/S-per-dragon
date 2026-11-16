@@ -121,7 +121,7 @@ jobs:
                   minSdk 23
                   targetSdk 28
                   versionCode (project.findProperty("VERSION_CODE") ?: "1").toInteger()
-                  versionName "1." + versionCode
+                  versionName "1." + (project.findProperty("VERSION_CODE") ?: "1")
               }
 
               signingConfigs {
@@ -142,7 +142,6 @@ jobs:
                       }
                       minifyEnabled false
                   }
-              }
               }
           }
           EOF
