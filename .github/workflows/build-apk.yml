@@ -51,13 +51,17 @@ jobs:
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dragon-super-release.jks"
+            keytool -list -keystore "$RUNNER_TEMP/dragon-super-release.jks" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/dragon-super-release.jks" >> "$GITHUB_ENV"
-            echo "Firma permanente encontrada."
+            echo "Firma permanente validada."
           else
-            echo "::warning::Falta ANDROID_KEYSTORE_BASE64. Se usará firma debug temporal hasta configurar los secretos."
+            echo "::warning::Faltan uno o más secretos de firma. Se usará firma debug temporal; agrega los cuatro secretos para una APK definitiva actualizable."
           fi
 
       - name: Crear estructura Android automáticamente
