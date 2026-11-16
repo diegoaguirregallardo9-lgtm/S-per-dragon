@@ -128,8 +128,10 @@ jobs:
                   versionName "1." + (project.findProperty("VERSION_CODE") ?: "1")
               }
 
+              def signingReady = ["ANDROID_KEYSTORE_PATH", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"].every { System.getenv(it)?.trim() }
+
               signingConfigs {
-                  if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                  if (signingReady) {
                       release {
                           storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
                           storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
@@ -141,7 +143,7 @@ jobs:
 
               buildTypes {
                   release {
-                      if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                      if (signingReady) {
                           signingConfig signingConfigs.release
                       }
                       minifyEnabled false
