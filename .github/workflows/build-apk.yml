@@ -129,8 +129,8 @@ jobs:
               defaultConfig {
                   applicationId 'com.auraclash.game'
                   minSdk 23
-                  targetSdk 28
-                  versionCode 1
+                  targetSdk 35
+                  versionCode (project.findProperty("VERSION_CODE") ?: "1").toInteger()
                   versionName "1.0"
               }
 
