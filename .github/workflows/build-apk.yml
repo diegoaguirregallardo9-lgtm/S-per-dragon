@@ -47,6 +47,19 @@ jobs:
           echo "WEB_ROOT=$WEB_ROOT" >> "$GITHUB_ENV"
           echo "Juego encontrado en: $WEB_ROOT"
 
+      - name: Preparar firma permanente
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/dragon-super-release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/dragon-super-release.jks" >> "$GITHUB_ENV"
+            echo "Firma permanente encontrada."
+          else
+            echo "::warning::Falta ANDROID_KEYSTORE_BASE64. Se usará firma debug temporal hasta configurar los secretos."
+          fi
+
       - name: Crear estructura Android automáticamente
         shell: bash
         run: |
@@ -107,8 +120,29 @@ jobs:
                   applicationId 'com.auraclash.game'
                   minSdk 23
                   targetSdk 28
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode (project.findProperty("VERSION_CODE") ?: "1").toInteger()
+                  versionName "1." + versionCode
+              }
+
+              signingConfigs {
+                  if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                      release {
+                          storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                          storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                          keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                          keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+                      }
+                  }
+              }
+
+              buildTypes {
+                  release {
+                      if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                          signingConfig signingConfigs.release
+                      }
+                      minifyEnabled false
+                  }
+              }
               }
           }
           EOF
@@ -221,12 +255,23 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Compilar APK
-        run: gradle --no-daemon assembleDebug
+      - name: Compilar APK firmada
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ env.ANDROID_KEYSTORE_PATH }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_PATH" ]; then
+            gradle --no-daemon -PVERSION_CODE="$GITHUB_RUN_NUMBER" assembleRelease
+          else
+            gradle --no-daemon -PVERSION_CODE="$GITHUB_RUN_NUMBER" assembleDebug
+          fi
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: AURA-CLASH-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: DRAGON-SUPER-APK
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
