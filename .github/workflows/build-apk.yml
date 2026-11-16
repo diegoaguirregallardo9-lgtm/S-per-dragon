@@ -130,7 +130,7 @@ jobs:
                   applicationId 'com.auraclash.game'
                   minSdk 23
                   targetSdk 35
-                  versionCode (project.findProperty("VERSION_CODE") ?: "1").toInteger()
+                  versionCode = (project.findProperty("VERSION_CODE") ?: "1").toString().toInteger()
                   versionName "1.0"
               }
 
