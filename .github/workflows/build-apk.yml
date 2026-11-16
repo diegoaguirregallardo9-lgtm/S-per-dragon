@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p proyecto
-          ZIP_FILE="./AuraClash_2D_Bluetooth.zip"
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname '*bluetooth*.zip' -print -quit)"
           if [ -z "$ZIP_FILE" ]; then
             echo "::error::No hay ningún ZIP del juego en la raíz del repositorio. Sube el ZIP del juego y vuelve a ejecutar."
             exit 1
@@ -46,7 +46,7 @@ jobs:
           unzip -o "$ZIP_FILE" -d proyecto
           HTML="$(find proyecto -type f ! -path '*/__MACOSX/*' \( -iname 'index.html' -o -iname 'index.htm' -o -iname '*.html' -o -iname '*.htm' \) | head -1)"
           if [ -z "$HTML" ]; then
-            echo "::error::No encontré ningún archivo HTML dentro de AuraClash_2D_Bluetooth.zip."
+            echo "::error::No encontré ningún archivo HTML dentro del ZIP Bluetooth subido."
             find proyecto -maxdepth 4 -type f | head -100
             exit 1
           fi
