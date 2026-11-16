@@ -315,11 +315,15 @@ kbd{font:400 12px var(--display);min-width:22px;text-align:center;padding:1px 5p
       <h2>🔵 BLUETOOTH 1 VS 1</h2>
       <p class="lead">Conecta dos dispositivos cercanos para jugar Aura Clash.</p>
       <div class="modes">
-        <button id="btHost" class="mt" type="button"><b>CREAR PARTIDA</b><small>Esperar a que se una el otro jugador</small></button>
-        <button id="btJoin" class="mt" type="button"><b>BUSCAR PARTIDA</b><small>Encontrar un dispositivo cercano</small></button>
+        <button id="btHost" class="mt" type="button"><b>CREAR PARTIDA</b><small>Esperar conexión del otro jugador</small></button>
+        <button id="btJoin" class="mt" type="button"><b>UNIRTE</b><small>Conectar con el anfitrión</small></button>
       </div>
-      <p id="btStatus" class="lead" role="status" aria-live="polite" style="margin-top:14px">Preparado. Activa Bluetooth en ambos dispositivos.</p>
-      <p class="hint">Este modo necesita el puente Bluetooth nativo de la APK. En navegador no se puede emparejar de forma universal.</p>
+      <label class="setr" style="margin-top:12px">Dirección Bluetooth del anfitrión
+        <input id="btMac" class="codein" type="text" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </label>
+      <p class="hint">Primero empareja ambos Android desde Ajustes → Bluetooth. En el teléfono anfitrión, consulta la dirección Bluetooth y escríbela aquí.</p>
+      <p id="btStatus" class="lead" role="status" aria-live="polite" style="margin-top:14px">Preparado. Activa Bluetooth y empareja los dispositivos.</p>
+      <p class="hint">La conexión requiere la APK Android; esta pantalla no funciona desde un navegador normal.</p>
     </div>
   </section>
 
@@ -1987,20 +1991,47 @@ setInterval(function(){if(!$('daily').hidden)renderDaily();},30000);
 $('play').addEventListener('click',function(){initAudio();sfx('ui');flow.t=false;flow.boss=false;openOv('mode');});
 $('mNormal').addEventListener('click',function(){sfx('ui');setKind('combat');openOv('mapsel');});
 $('mTour').addEventListener('click',function(){sfx('ui');setKind('tour');openOv('mapsel');});
-$('mBluetooth').addEventListener('click',function(){sfx('ui');openOv('bluetoothMode');$('btStatus').textContent='Preparado. Activa Bluetooth en ambos dispositivos.';});
+$('mBluetooth').addEventListener('click',function(){sfx('ui');openOv('bluetoothMode');$('btStatus').textContent='Preparado. Empareja ambos Android desde Ajustes.';});
+function bluetoothStatus(message){
+  var labels={
+    waiting:'Partida creada. Esperando al otro jugador...',
+    connected:'¡Bluetooth conectado! El enlace entre dispositivos está activo.',
+    permission_required:'Falta permiso Bluetooth. Acéptalo y vuelve a tocar la opción.',
+    permission_granted:'Permiso concedido. Vuelve a intentar la conexión.',
+    permission_denied:'Permiso Bluetooth denegado. Actívalo en los ajustes de la app.',
+    bluetooth_off:'Activa Bluetooth en los ajustes de Android.',
+    unsupported:'Este dispositivo no tiene Bluetooth compatible.',
+    server_error:'No se pudo crear la partida. Comprueba Bluetooth y vuelve a intentar.',
+    connect_error:'No se pudo conectar. Comprueba que la dirección sea correcta y estén emparejados.',
+    connection_lost:'Se perdió la conexión Bluetooth.',
+    disconnected:'Conexión Bluetooth cerrada.',
+    not_connected:'Todavía no hay otro dispositivo conectado.'
+  };
+  $('btStatus').textContent=labels[message]||String(message||'Estado Bluetooth desconocido');
+}
 function bluetoothAction(action){
-  var bridge=window.AuraBluetooth;
-  if(bridge&&typeof bridge[action]==='function'){
-    $('btStatus').textContent=action==='createRoom'?'Creando partida...':'Buscando dispositivos cercanos...';
-    try{bridge[action]();}catch(err){$('btStatus').textContent='No se pudo iniciar Bluetooth. Revisa los permisos de la APK.';}
-  }else{
-    $('btStatus').textContent='El menú ya está integrado, pero falta conectar el módulo Bluetooth nativo en el proyecto Android.';
-  }
+  var bridge=window.AndroidBluetooth;
+  if(!bridge){$('btStatus').textContent='No se detectó el módulo Bluetooth. Abre la APK Android, no el HTML en el navegador.';return;}
+  try{
+    if(action==='createRoom'){
+      $('btStatus').textContent='Iniciando partida...';
+      bridge.startServer();
+    }else if(action==='joinRoom'){
+      var mac=$('btMac').value.trim().toUpperCase();
+      if(!/^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/.test(mac)){
+        $('btStatus').textContent='Escribe una dirección válida, por ejemplo AA:BB:CC:DD:EE:FF.';
+        return;
+      }
+      $('btStatus').textContent='Conectando con '+mac+'...';
+      bridge.connect(mac);
+    }
+  }catch(err){$('btStatus').textContent='Error al iniciar Bluetooth. Revisa los permisos de la APK y vuelve a intentar.';}
 }
 $('btHost').addEventListener('click',function(){sfx('ui');bluetoothAction('createRoom');});
-$('btJoin').addEventListener('click',function(){sfx('ui');bluetoothAction('findRoom');});
-// La app Android puede actualizar este texto desde su puente nativo.
-window.onAuraBluetoothStatus=function(message){$('btStatus').textContent=String(message||'');};
+$('btJoin').addEventListener('click',function(){sfx('ui');bluetoothAction('joinRoom');});
+window.addEventListener('bluetoothstatus',function(e){bluetoothStatus(e.detail);});
+window.addEventListener('bluetoothmessage',function(e){window.dispatchEvent(new CustomEvent('auraclashmessage',{detail:e.detail}));});
+window.onAuraBluetoothStatus=bluetoothStatus;
 Array.prototype.forEach.call(document.querySelectorAll('#maps button'),function(b){b.addEventListener('click',function(){openSelect('play');});});
 $('bDaily').addEventListener('click',function(){initAudio();sfx('ui');openOv('daily');});
 $('dailyGo').addEventListener('click',claimDaily);
